@@ -18,7 +18,7 @@ function flatten(obj, key, group) {
 module.exports = function handle({ message = {} }, { ship, hull }) {
   const { user, segments } = message;
   try {
-    const { changes, events } = compute(message, ship);
+    const { changes, accountChanges, events, account } = compute(message, ship);
     const asUser = hull.as(user.id);
 
     hull.logger.debug("compute.user.debug", { id: user.id, email: user.email, changes });
@@ -32,6 +32,19 @@ module.exports = function handle({ message = {} }, { ship, hull }) {
       if (_.size(flat)) {
         hull.logger.info("compute.user.computed", { id: user.id, changes: flat });
         asUser.traits(flat);
+      }
+    }
+
+    if (_.size(accountChanges)) {
+      const flat = {
+        ...changes.traits,
+        ...flatten({}, "", _.omit(changes, "traits")),
+      };
+
+      if (_.size(flat)) {
+        const { domain } = account;
+        hull.logger.info("compute.account.computed", { id: account.id, changes: flat });
+        asUser.account({ domain }).traits(flat);
       }
     }
 

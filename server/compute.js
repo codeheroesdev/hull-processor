@@ -31,7 +31,7 @@ function getSandbox(ship) {
 }
 const TOP_LEVEL_FIELDS = ["tags", "name", "description", "extra", "picture", "settings", "username", "email", "contact_email", "image", "first_name", "last_name", "address", "created_at", "phone", "domain", "accepts_marketing"];
 
-module.exports = function compute({ changes = {}, user, segments, events = [] }, ship = {}) {
+module.exports = function compute({ changes = {}, user, account, segments, account_segments, events = [] }, ship = {}) {
   const { private_settings = {} } = ship;
   const { code = "", sentry_dsn: sentryDsn } = private_settings;
 
@@ -41,8 +41,10 @@ module.exports = function compute({ changes = {}, user, segments, events = [] },
   const sandbox = getSandbox(ship);
   sandbox.changes = changes;
   sandbox.user = user;
+  sandbox.account = account || {};
   sandbox.events = events;
   sandbox.segments = segments;
+  sandbox.account_segments = account_segments || [];
   sandbox.ship = ship;
   sandbox.payload = {};
   sandbox.isInSegment = isInSegment.bind(null, segments);
@@ -50,6 +52,8 @@ module.exports = function compute({ changes = {}, user, segments, events = [] },
 
   let tracks = [];
   const userTraits = [];
+  const accountTraits = [];
+  let accountClaims = null;
   const logs = [];
   const errors = [];
 
@@ -61,6 +65,24 @@ module.exports = function compute({ changes = {}, user, segments, events = [] },
   sandbox.traits = (properties = {}, context = {}) => {
     userTraits.push({ properties, context });
   };
+
+  sandbox.hull = {
+    account: (claims = null) => {
+      if (claims) accountClaims = claims;
+      return { 
+        traits: (properties = {}, context = {}) => {
+          accountTraits.push({ properties, context })
+        },
+        isInSegment: isInSegment.bind(null, account_segments)
+      };
+    },
+    traits: (properties = {}, context = {}) => {
+      userTraits.push({ properties, context });
+    },
+    tracks: (eventName, properties = {}, context = {}) => {
+      if (eventName) tracks.push({ eventName, properties, context });
+    }
+  }
 
   function log(...args) {
     logs.push(args);
@@ -136,13 +158,15 @@ module.exports = function compute({ changes = {}, user, segments, events = [] },
     return pld;
   }, {});
 
-  const updatedUser = deepMerge(user, payload, {
-    // we don't concatenate arrays, we use only new values:
-    arrayMerge: (destinationArray, sourceArray) => sourceArray
-  });
+  // we don't concatenate arrays, we use only new values:
+  arrayMerge = (destinationArray, sourceArray) => sourceArray
+  const updatedUser = deepMerge(user, payload, { arrayMerge: arrayMerge });
+  const updatedAccount = deepMerge(account, payload, { arrayMerge: arrayMerge });
 
-  const diff = deepDiff(user, updatedUser) || [];
-  const changed = _.reduce(diff, (memo, d) => {
+  const userDiff = deepDiff(user, updatedUser) || [];
+  const accountDiff = deepDiff(account, updatedAccount) || [];
+  
+  updateChanges = (memo, d) => {
     if (d.kind === "N" || d.kind === "E") {
       _.set(memo, d.path, d.rhs);
     }
@@ -152,14 +176,19 @@ module.exports = function compute({ changes = {}, user, segments, events = [] },
       _.set(memo, d.path, _.get(payload, d.path, []));
     }
     return memo;
-  }, {});
+  }
+
+  const userChanged = _.reduce(userDiff, updateChanges, {});
+  const accountChanged = _.reduce(userDiff, updateChanges, {});
 
   return {
     logs,
     errors,
-    changes: changed,
+    changes: userChanged,
+    accountChanges: accountChanged,
     events: tracks,
     payload: sandbox.payload,
-    user: updatedUser
+    user: updatedUser,
+    account: updatedAccount
   };
 };
