@@ -17,9 +17,10 @@ function flatten(obj, key, group) {
 
 module.exports = function handle({ message = {} }, { ship, hull }) {
   const { user, segments } = message;
+
   try {
-    const { changes, events, account, accountClaims } = compute(message, ship);
-    const asUser = hull.as(user.id);
+    const { changes, events, account, accountClaims } = compute({ ...message, user }, ship);
+    const asUser = hull.asUser(user.id);
 
     hull.logger.debug("compute.user.debug", { id: user.id, email: user.email, changes });
 

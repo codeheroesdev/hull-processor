@@ -34,10 +34,10 @@ function computeHandler(req, res) {
 
 module.exports = function ComputeHandler(options) {
   const app = connect();
-  const { hullClient, hostSecret = "" } = options;
+  const { connector, hostSecret = "" } = options;
 
   app.use(bodyParser.json());
-  app.use(hullClient({ hostSecret, fetchShip: true, cacheShip: false }));
+  app.use(connector.clientMiddleware({ hostSecret, fetchShip: true, cacheShip: false }));
   app.use(fetchUser);
   app.use(computeHandler);
 

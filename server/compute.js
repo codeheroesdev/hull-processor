@@ -8,6 +8,8 @@ import deepFreeze from "deep-freeze";
 import deepMerge from "deepmerge";
 // import isGroup from "./is-group-trait";
 
+const TOP_LEVEL_FIELDS = ["tags", "name", "description", "extra", "picture", "settings", "username", "email", "contact_email", "image", "first_name", "last_name", "address", "created_at", "phone", "domain", "accepts_marketing"];
+
 function applyUtils(sandbox = {}) {
   const lodash = _.functions(_).reduce((l, key) => {
     l[key] = (...args) => _[key](...args);
@@ -43,7 +45,7 @@ const buildPayload = (pld, pl = {}) => {
     }
   }
   return pld;
-}
+};
 
 const updateChanges = (payload) => {
   return (memo, d) => {
@@ -56,8 +58,8 @@ const updateChanges = (payload) => {
       _.set(memo, d.path, _.get(payload, d.path, []));
     }
     return memo;
-  }
-}
+  };
+};
 
 function isInSegment(segments = [], segmentName) {
   return _.includes(_.map(segments, "name"), segmentName);
@@ -69,7 +71,6 @@ function getSandbox(ship) {
   if (!s) sandboxes[ship.id] = vm.createContext({});
   return sandboxes[ship.id];
 }
-const TOP_LEVEL_FIELDS = ["tags", "name", "description", "extra", "picture", "settings", "username", "email", "contact_email", "image", "first_name", "last_name", "address", "created_at", "phone", "domain", "accepts_marketing"];
 
 module.exports = function compute({ changes = {}, user, account, segments, account_segments, events = [] }, ship = {}) {
   const { private_settings = {} } = ship;
@@ -109,9 +110,9 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
   sandbox.hull = {
     account: (claims = null) => {
       if (claims) accountClaims = claims;
-      return { 
+      return {
         traits: (properties = {}, context = {}) => {
-          accountTraits.push({ properties, context })
+          accountTraits.push({ properties, context });
         },
         isInSegment: isInSegment.bind(null, account_segments)
       };
@@ -174,24 +175,24 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
   const payload = {
     user: _.reduce(userTraits, buildPayload, {}),
     account: _.reduce(accountTraits, buildPayload, {}),
-  }
+  };
 
   // we don't concatenate arrays, we use only new values:
-  const arrayMerge = (destinationArray, sourceArray) => sourceArray
+  const arrayMerge = (destinationArray, sourceArray) => sourceArray;
   const updated = {
     user: deepMerge(user, payload.user, { arrayMerge }),
     account: deepMerge(account, payload.account, { arrayMerge }),
-  }
+  };
 
   const diff = {
     user: deepDiff(user, updated.user) || [],
     account: deepDiff(account, updated.account) || [],
-  }
+  };
 
   const changed = {
     user: _.reduce(diff.user, updateChanges(payload.user), {}),
     account: _.reduce(diff.account, updateChanges(payload.account), {}),
-  }
+  };
 
   return {
     logs,
@@ -199,8 +200,7 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
     changes: changed,
     events: tracks,
     payload: sandbox.payload,
-    user: updated.user,
-    account: updated.account,
-    accountClaims: accountClaims
+    ...updated,
+    accountClaims
   };
 };
