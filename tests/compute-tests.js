@@ -57,21 +57,29 @@ describe("Compute Ship", () => {
     it("Should not change content if code does not return", () => {
       const result = applyCompute(OLD_CODE.empty);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should not change content if code returns invalid ", () => {
       const result = applyCompute(OLD_CODE.invalid);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should not change content if code does not change content", () => {
       const result = applyCompute(OLD_CODE.identity);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should only add the correct number of entries and nothing else", () => {
       const result = applyCompute(OLD_CODE.one);
-      expect(result.changes).to.deep.equal({ traits: { boom: "bam" }, domain: "test" });
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user).to.deep.equal({ traits: { boom: "bam" }, domain: "test" });
+      expect(result.changes.account).to.be.eql({});
     });
 
     it("Should add trait when code adds a trait", () => {
@@ -86,35 +94,34 @@ describe("Compute Ship", () => {
 
     it("Should return grouped objects when groups are passed", () => {
       const result = applyCompute(OLD_CODE.utils);
-      expect(result).to.have.deep.property("changes.traits.hello_at", "20160101");
-      expect(result).to.have.deep.property("changes.traits.host", "hull.io");
-      expect(result).to.have.deep.property("changes.traits.keys", "a,b");
+      expect(result).to.have.deep.property("changes.user.traits.hello_at", "20160101");
+      expect(result).to.have.deep.property("changes.user.traits.host", "hull.io");
+      expect(result).to.have.deep.property("changes.user.traits.keys", "a,b");
     });
 
     it("Should add an array element", () => {
       const result = applyCompute(OLD_CODE.add_array_element);
-      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B", "C", "E"]);
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["A", "B", "C", "E"]);
     });
 
     it("Should modify an array element", () => {
       const result = applyCompute(OLD_CODE.modify_array_element);
-      expect(result.changes.traits.testing_array).to.deep.equal(["F", "B", "C", "E"]);
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["F", "B", "C", "E"]);
     });
 
     it("Should delete an array element", () => {
       const result = applyCompute(OLD_CODE.delete_array_element);
-      console.log("DELETE", result.changes);
-      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B"]);
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["A", "B"]);
     });
 
     it("Should change an array to string", () => {
       const result = applyCompute(OLD_CODE.array_to_string);
-      expect(result.changes.traits.testing_array).to.equal("abcdef");
+      expect(result.changes.user.traits.testing_array).to.equal("abcdef");
     });
 
     it("Should change a string to an array", () => {
       const result = applyCompute(OLD_CODE.string_to_array);
-      expect(result.changes.traits.foo).to.deep.equal(["A", "B"]);
+      expect(result.changes.user.traits.foo).to.deep.equal(["A", "B"]);
     });
   });
 
@@ -122,64 +129,78 @@ describe("Compute Ship", () => {
     it("Should not change content if code does not return", () => {
       const result = applyCompute(CODE.empty);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should not change content if code returns invalid ", () => {
       const result = applyCompute(CODE.invalid);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should not change content if code does not change content", () => {
       const result = applyCompute(CODE.identity);
       expect(result.user).to.be.eql(user);
+      expect(result.account).to.be.eql({});
+      expect(result.changes).to.be.eql({ user: {}, account: {} });
     });
 
     it("Should only add the correct number of entries and nothing else", () => {
       const result = applyCompute(CODE.one);
-      expect(result.changes).to.deep.equal({ traits: { boom: "bam" }, domain: "test" });
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user).to.deep.equal({ traits: { boom: "bam" }, domain: "test" });
     });
 
     it("Should add trait when code adds a trait", () => {
       const result = applyCompute(CODE.new_boolean);
+      expect(result.account).to.be.eql({});
       expect(result).to.have.deep.property("user.traits.new_boolean", true);
     });
 
     it("Should return grouped objects when groups are passed", () => {
       const result = applyCompute(CODE.group);
+      expect(result.account).to.be.eql({});
       expect(result).to.have.deep.property("user.group.line", "test");
     });
 
     it("Should return grouped objects when groups are passed", () => {
       const result = applyCompute(CODE.utils);
-      expect(result).to.have.deep.property("changes.traits.hello_at", "20160101");
-      expect(result).to.have.deep.property("changes.traits.host", "hull.io");
-      expect(result).to.have.deep.property("changes.traits.keys", "a,b");
+      expect(result.account).to.be.eql({});
+      expect(result).to.have.deep.property("changes.user.traits.hello_at", "20160101");
+      expect(result).to.have.deep.property("changes.user.traits.host", "hull.io");
+      expect(result).to.have.deep.property("changes.user.traits.keys", "a,b");
     });
 
     it("Should add an array element", () => {
       const result = applyCompute(CODE.add_array_element);
-      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B", "C", "E"]);
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["A", "B", "C", "E"]);
     });
 
     it("Should modify an array element", () => {
       const result = applyCompute(CODE.modify_array_element);
-      expect(result.changes.traits.testing_array).to.deep.equal(["F", "B", "C", "E"]);
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["F", "B", "C", "E"]);
     });
 
     it("Should delete an array element", () => {
       const result = applyCompute(CODE.delete_array_element);
-      console.log("DELETE", result.changes);
-      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B"]);
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user.traits.testing_array).to.deep.equal(["A", "B"]);
     });
 
     it("Should change an array to string", () => {
       const result = applyCompute(CODE.array_to_string);
-      expect(result.changes.traits.testing_array).to.equal("abcdef");
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user.traits.testing_array).to.equal("abcdef");
     });
 
     it("Should change a string to an array", () => {
       const result = applyCompute(CODE.string_to_array);
-      expect(result.changes.traits.foo).to.deep.equal(["A", "B"]);
+      expect(result.account).to.be.eql({});
+      expect(result.changes.user.traits.foo).to.deep.equal(["A", "B"]);
     });
   });
 });

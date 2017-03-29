@@ -18,15 +18,15 @@ function flatten(obj, key, group) {
 module.exports = function handle({ message = {} }, { ship, hull }) {
   const { user, segments } = message;
   try {
-    const { changes, accountChanges, events, account } = compute(message, ship);
+    const { changes, events, account, accountClaims } = compute(message, ship);
     const asUser = hull.as(user.id);
 
     hull.logger.debug("compute.user.debug", { id: user.id, email: user.email, changes });
 
-    if (_.size(changes)) {
+    if (_.size(changes.user)) {
       const flat = {
-        ...changes.traits,
-        ...flatten({}, "", _.omit(changes, "traits")),
+        ...changes.user.traits,
+        ...flatten({}, "", _.omit(changes.user, "traits")),
       };
 
       if (_.size(flat)) {
@@ -35,17 +35,18 @@ module.exports = function handle({ message = {} }, { ship, hull }) {
       }
     }
 
-    if (_.size(accountChanges)) {
+    if (_.size(changes.account)) {
       const flat = {
-        ...changes.traits,
-        ...flatten({}, "", _.omit(changes, "traits")),
+        ...changes.account.traits,
+        ...flatten({}, "", _.omit(changes.account, "traits")),
       };
 
       if (_.size(flat)) {
-        const { domain } = account;
         hull.logger.info("compute.account.computed", { id: account.id, changes: flat });
-        asUser.account({ domain }).traits(flat);
+        asUser.account(accountClaims).traits(flat);
       }
+    } else if (accountClaims) {
+      asUser.account(accountClaims);
     }
 
     if (events.length > 0) {
