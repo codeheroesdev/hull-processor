@@ -6,7 +6,8 @@ should();
 
 const payload = { events, segments, user };
 
-const CODE = {
+// We need to keep backward compatibility (traits method scoped to the user by default)
+const OLD_CODE = {
   empty: " ",
   invalid: " return false;",
   identity: "traits({})",
@@ -18,7 +19,23 @@ const CODE = {
   modify_array_element: "traits({ testing_array: ['F', 'B', 'C', 'E'] })",
   delete_array_element: "traits({ testing_array: ['A', 'B'] })",
   array_to_string: "traits({ testing_array: 'abcdef' })",
-  string_to_array: "traits({ foo: ['A', 'B'] })"
+  string_to_array: "traits({ foo: ['A', 'B'] })",
+};
+
+// New version: using hull object scoped to the user, mocking the hull-node library
+const CODE = {
+  empty: " ",
+  invalid: " return false;",
+  identity: "hull.traits({})",
+  one: "hull.traits({ domain: 'test', boom: 'bam' })",
+  new_boolean: "hull.traits({ new_boolean: true });",
+  group: "hull.traits({ line: 'test'}, { source: 'group' });",
+  utils: "hull.traits({ keys: _.keys({ a: 1, b: 2 }).join(','), host: urijs('http://hull.io/hello').host(), hello_at: moment('2016-12-01').startOf('year').format('YYYYMMDD') })",
+  add_array_element: "hull.traits({ testing_array: ['A', 'B', 'C', 'E'] })",
+  modify_array_element: "hull.traits({ testing_array: ['F', 'B', 'C', 'E'] })",
+  delete_array_element: "hull.traits({ testing_array: ['A', 'B'] })",
+  array_to_string: "hull.traits({ testing_array: 'abcdef' })",
+  string_to_array: "hull.traits({ foo: ['A', 'B'] })",
 };
 
 function shipWithCode(s = {}, code = {}) {
@@ -37,6 +54,71 @@ function applyCompute(c) {
 
 describe("Compute Ship", () => {
   describe("Compute method", () => {
+    it("Should not change content if code does not return", () => {
+      const result = applyCompute(OLD_CODE.empty);
+      expect(result.user).to.be.eql(user);
+    });
+
+    it("Should not change content if code returns invalid ", () => {
+      const result = applyCompute(OLD_CODE.invalid);
+      expect(result.user).to.be.eql(user);
+    });
+
+    it("Should not change content if code does not change content", () => {
+      const result = applyCompute(OLD_CODE.identity);
+      expect(result.user).to.be.eql(user);
+    });
+
+    it("Should only add the correct number of entries and nothing else", () => {
+      const result = applyCompute(OLD_CODE.one);
+      expect(result.changes).to.deep.equal({ traits: { boom: "bam" }, domain: "test" });
+    });
+
+    it("Should add trait when code adds a trait", () => {
+      const result = applyCompute(OLD_CODE.new_boolean);
+      expect(result).to.have.deep.property("user.traits.new_boolean", true);
+    });
+
+    it("Should return grouped objects when groups are passed", () => {
+      const result = applyCompute(OLD_CODE.group);
+      expect(result).to.have.deep.property("user.group.line", "test");
+    });
+
+    it("Should return grouped objects when groups are passed", () => {
+      const result = applyCompute(OLD_CODE.utils);
+      expect(result).to.have.deep.property("changes.traits.hello_at", "20160101");
+      expect(result).to.have.deep.property("changes.traits.host", "hull.io");
+      expect(result).to.have.deep.property("changes.traits.keys", "a,b");
+    });
+
+    it("Should add an array element", () => {
+      const result = applyCompute(OLD_CODE.add_array_element);
+      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B", "C", "E"]);
+    });
+
+    it("Should modify an array element", () => {
+      const result = applyCompute(OLD_CODE.modify_array_element);
+      expect(result.changes.traits.testing_array).to.deep.equal(["F", "B", "C", "E"]);
+    });
+
+    it("Should delete an array element", () => {
+      const result = applyCompute(OLD_CODE.delete_array_element);
+      console.log("DELETE", result.changes);
+      expect(result.changes.traits.testing_array).to.deep.equal(["A", "B"]);
+    });
+
+    it("Should change an array to string", () => {
+      const result = applyCompute(OLD_CODE.array_to_string);
+      expect(result.changes.traits.testing_array).to.equal("abcdef");
+    });
+
+    it("Should change a string to an array", () => {
+      const result = applyCompute(OLD_CODE.string_to_array);
+      expect(result.changes.traits.foo).to.deep.equal(["A", "B"]);
+    });
+  });
+
+  describe("Compute method using hull scoped object", () => {
     it("Should not change content if code does not return", () => {
       const result = applyCompute(CODE.empty);
       expect(result.user).to.be.eql(user);

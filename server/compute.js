@@ -37,11 +37,12 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
 
   // Manually add traits hash if not already there
   user.traits = user.traits || {};
+  account = account || {};
 
   const sandbox = getSandbox(ship);
   sandbox.changes = changes;
   sandbox.user = user;
-  sandbox.account = account || {};
+  sandbox.account = account;
   sandbox.events = events;
   sandbox.segments = segments;
   sandbox.account_segments = account_segments || [];
@@ -159,14 +160,16 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
   }, {});
 
   // we don't concatenate arrays, we use only new values:
-  arrayMerge = (destinationArray, sourceArray) => sourceArray
-  const updatedUser = deepMerge(user, payload, { arrayMerge: arrayMerge });
-  const updatedAccount = deepMerge(account, payload, { arrayMerge: arrayMerge });
+  const arrayMerge = (destinationArray, sourceArray) => sourceArray
+  const updatedUser = deepMerge(user, payload, { arrayMerge });
+  console.log('account:', account)
+  console.log('payload:', payload)
+  const updatedAccount = deepMerge(account, payload, { arrayMerge });
 
   const userDiff = deepDiff(user, updatedUser) || [];
-  const accountDiff = deepDiff(account, updatedAccount) || [];
+  //const accountDiff = deepDiff(account, updatedAccount) || [];
   
-  updateChanges = (memo, d) => {
+  const updateChanges = (memo, d) => {
     if (d.kind === "N" || d.kind === "E") {
       _.set(memo, d.path, d.rhs);
     }
@@ -179,16 +182,16 @@ module.exports = function compute({ changes = {}, user, account, segments, accou
   }
 
   const userChanged = _.reduce(userDiff, updateChanges, {});
-  const accountChanged = _.reduce(userDiff, updateChanges, {});
+  //const accountChanged = _.reduce(userDiff, updateChanges, {});
 
   return {
     logs,
     errors,
     changes: userChanged,
-    accountChanges: accountChanged,
+    //accountChanges: accountChanged,
     events: tracks,
     payload: sandbox.payload,
     user: updatedUser,
-    account: updatedAccount
+    //account: updatedAccount
   };
 };
